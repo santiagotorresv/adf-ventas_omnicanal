@@ -1,0 +1,17 @@
+{
+	"name": "sql_omnicanal",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "AzureSqlDatabase",
+		"typeProperties": {
+			"server": "sql-ucb-sisger-7948848.database.windows.net",
+			"database": "db-ventas",
+			"encrypt": "mandatory",
+			"trustServerCertificate": false,
+			"authenticationType": "SQL",
+			"userName": "santiagotorres",
+			"encryptedCredential": "ew0KICAiVmVyc2lvbiI6ICIyMDE3LTExLTMwIiwNCiAgIlByb3RlY3Rpb25Nb2RlIjogIktleSIsDQogICJTZWNyZXRDb250ZW50VHlwZSI6ICJQbGFpbnRleHQiLA0KICAiQ3JlZGVudGlhbElkIjogIkRBVEFGQUNUT1JZQEU5RjNFMTJBLUJGOEQtNEE1MS04MkE4LTRFQTE4NzlBNkM1M180NDk4YTNjMi0zN2FiLTRhODUtOGUzZi04ZThmMzM5OGIyMTEiDQp9"
+		}
+	}
+}
