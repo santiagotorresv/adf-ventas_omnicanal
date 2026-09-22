@@ -1,0 +1,130 @@
+{
+	"name": "df_ventas",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "pedidos_csv",
+						"type": "DatasetReference"
+					},
+					"name": "pedidos"
+				},
+				{
+					"dataset": {
+						"referenceName": "pagos_csv",
+						"type": "DatasetReference"
+					},
+					"name": "pagos"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "ventas_sql",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "ventas"
+				},
+				{
+					"name": "derivedColumn1"
+				},
+				{
+					"name": "derivedColumn2"
+				},
+				{
+					"name": "mapeo"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          pedido_id as string,",
+				"          fecha_pedido as string,",
+				"          hora_pedido as string,",
+				"          cliente_id as string,",
+				"          sucursal_id as string,",
+				"          canal as string,",
+				"          tipo_servicio as string,",
+				"          estado_pedido as string,",
+				"          promocion_id as string,",
+				"          subtotal as string,",
+				"          costo_delivery as string,",
+				"          descuento as string,",
+				"          impuesto as string,",
+				"          total_pedido as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> pedidos",
+				"source(output(",
+				"          pago_id as string,",
+				"          pedido_id as string,",
+				"          fecha_pago as string,",
+				"          metodo_pago as string,",
+				"          estado_pago as string,",
+				"          monto_pagado as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> pagos",
+				"pedidos, pagos join(pedidos@pedido_id == pagos@pedido_id,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> ventas",
+				"mapeo derive(canal = lower(trim(canal)),",
+				"          fecha_venta = trim(fecha_pedido),",
+				"          promocion_id = iif(isNull(promocion_id),'Sin Promocion',trim(promocion_id)) ) ~> derivedColumn1",
+				"derivedColumn1 derive(fecha_venta = iif(instr(fecha_venta, '/') > 0, toDate(fecha_venta, 'dd/MM/yyyy'), toDate(fecha_venta,'yyyy-MM-dd')),",
+				"          total_venta = toDecimal(total_venta)) ~> derivedColumn2",
+				"ventas derive(venta_id = pedidos@pedido_id,",
+				"          fecha_venta = fecha_pedido,",
+				"          cliente_id = cliente_id,",
+				"          sucursal_id = sucursal_id,",
+				"          canal = canal,",
+				"          medio_pago = metodo_pago,",
+				"          promocion_id = promocion_id,",
+				"          estado_venta = estado_pedido,",
+				"          total_venta = total_pedido) ~> mapeo",
+				"derivedColumn2 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          venta_id as string,",
+				"          fecha_venta as date,",
+				"          cliente_id as string,",
+				"          sucursal_id as string,",
+				"          canal as string,",
+				"          medio_pago as string,",
+				"          promocion_id as string,",
+				"          estado_venta as string,",
+				"          total_venta as decimal(12,2)",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          venta_id,",
+				"          fecha_venta,",
+				"          cliente_id,",
+				"          sucursal_id,",
+				"          canal,",
+				"          medio_pago,",
+				"          promocion_id,",
+				"          estado_venta,",
+				"          total_venta",
+				"     )) ~> sink1"
+			]
+		}
+	}
+}
