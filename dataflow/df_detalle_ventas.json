@@ -1,5 +1,5 @@
 {
-	"name": "df_detalle_pedidos",
+	"name": "df_detalle_ventas",
 	"properties": {
 		"type": "MappingDataFlow",
 		"typeProperties": {
@@ -9,13 +9,13 @@
 						"referenceName": "detalle_pedidos_csv",
 						"type": "DatasetReference"
 					},
-					"name": "source1"
+					"name": "detallePedidos"
 				}
 			],
 			"sinks": [
 				{
 					"dataset": {
-						"referenceName": "detalle_pedidos_csv",
+						"referenceName": "detalle_ventas_sql",
 						"type": "DatasetReference"
 					},
 					"name": "sink1"
@@ -30,6 +30,9 @@
 				},
 				{
 					"name": "derivedColumn2"
+				},
+				{
+					"name": "mapearDetalleVentas"
 				}
 			],
 			"scriptLines": [
@@ -44,8 +47,8 @@
 				"     ),",
 				"     allowSchemaDrift: true,",
 				"     validateSchema: false,",
-				"     ignoreNoFilesFound: false) ~> source1",
-				"source1 derive(cantidad = lower(trim(cantidad)),",
+				"     ignoreNoFilesFound: false) ~> detallePedidos",
+				"detallePedidos derive(cantidad = lower(trim(cantidad)),",
 				"          precio_unitario = replace(replace(trim(precio_unitario),'Bs ', ''),',','.'),",
 				"          descuento_linea = lower(trim(descuento_linea))) ~> derivedColumn1",
 				"derivedColumn1 split(!isInteger(cantidad) || !isDecimal(precio_unitario) || !isDecimal(descuento_linea) || !isDecimal(total_linea) || toDecimal(descuento_linea) < 0 || toDecimal(descuento_linea) > 100,",
@@ -54,31 +57,39 @@
 				"          precio_unitario = toDecimal(precio_unitario),",
 				"          descuento_linea = toDecimal(descuento_linea),",
 				"          total_linea = toDecimal(total_linea)) ~> derivedColumn2",
-				"derivedColumn2 sink(allowSchemaDrift: true,",
+				"derivedColumn2 derive(venta_id = pedido_id,",
+				"          descuento = descuento_linea,",
+				"          subtotal = total_linea) ~> mapearDetalleVentas",
+				"mapearDetalleVentas sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     input(",
 				"          detalle_id as string,",
-				"          pedido_id as string,",
+				"          venta_id as string,",
 				"          producto_id as string,",
-				"          cantidad as string,",
-				"          precio_unitario as string,",
-				"          descuento_linea as string,",
-				"          total_linea as string",
+				"          cantidad as integer,",
+				"          precio_unitario as decimal(12,2),",
+				"          descuento as decimal(5,2),",
+				"          subtotal as decimal(12,2)",
 				"     ),",
-				"     umask: 0022,",
-				"     preCommands: [],",
-				"     postCommands: [],",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
 				"     mapColumn(",
 				"          detalle_id,",
-				"          pedido_id,",
+				"          venta_id,",
 				"          producto_id,",
 				"          cantidad,",
 				"          precio_unitario,",
-				"          descuento_linea,",
-				"          total_linea",
-				"     )) ~> sink1"
+				"          descuento,",
+				"          subtotal",
+				"     ),",
+				"     preCommands: [],",
+				"     postCommands: []) ~> sink1"
 			]
 		}
 	}
