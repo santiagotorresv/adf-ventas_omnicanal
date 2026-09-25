@@ -1,0 +1,92 @@
+{
+	"name": "df_promociones",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "promociones_csv",
+						"type": "DatasetReference"
+					},
+					"name": "promociones"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "promociones_sql",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "derivedColumn1"
+				},
+				{
+					"name": "split1"
+				},
+				{
+					"name": "derivedColumn2"
+				},
+				{
+					"name": "mapeo"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          promocion_id as string,",
+				"          nombre_promocion as string,",
+				"          fecha_inicio as string,",
+				"          fecha_fin as string,",
+				"          porcentaje_descuento as string,",
+				"          canal_aplicable as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> promociones",
+				"promociones derive(nombre_promocion = initCap(lower(trim(nombre_promocion))),",
+				"          fecha_inicio = trim(fecha_inicio),",
+				"          fecha_fin = trim(fecha_fin),",
+				"          porcentaje_descuento = trim(porcentaje_descuento),",
+				"          canal_aplicable = lower(trim(canal_aplicable))) ~> derivedColumn1",
+				"derivedColumn1 split(!isNull(promocion_id) && !isNull(nombre_promocion) && isDecimal(porcentaje_descuento),",
+				"     disjoint: false) ~> split1@(validos, rechazados)",
+				"split1@validos derive(fecha_inicio = toDate(fecha_inicio),",
+				"          fecha_fin = toDate(fecha_fin),",
+				"          porcentaje_descuento = toDecimal(porcentaje_descuento)) ~> derivedColumn2",
+				"derivedColumn2 derive(valor_descuento = porcentaje_descuento) ~> mapeo",
+				"mapeo sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          promocion_id as string,",
+				"          nombre_promocion as string,",
+				"          tipo_descuento as string,",
+				"          valor_descuento as decimal(8,2),",
+				"          fecha_inicio as date,",
+				"          fecha_fin as date,",
+				"          canal_aplicable as string,",
+				"          estado_promocion as string",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          promocion_id,",
+				"          nombre_promocion,",
+				"          valor_descuento,",
+				"          fecha_inicio,",
+				"          fecha_fin,",
+				"          canal_aplicable",
+				"     )) ~> sink1"
+			]
+		}
+	}
+}
